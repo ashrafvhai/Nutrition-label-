@@ -1,0 +1,79 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with personal nutrition and macro goals",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The Firebase Auth UID of the user" },
+        "displayName": { "type": "string", "description": "User display name" },
+        "photoUrl": { "type": "string", "description": "Optional user avatar URL" },
+        "dailyCalorieGoal": { "type": "integer", "description": "Daily target calories in kcal" },
+        "dailyProteinGoal": { "type": "integer", "description": "Daily target protein in grams" },
+        "dailyCarbGoal": { "type": "integer", "description": "Daily target carbs in grams" },
+        "dailyFatGoal": { "type": "integer", "description": "Daily target fat in grams" },
+        "dietPreference": { "type": "string", "description": "Diet preference (e.g. balanced, high-protein, keto, vegan)" },
+        "units": { "type": "string", "description": "Measurement units (metric or imperial)" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp via serverTimestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp via serverTimestamp" }
+      },
+      "required": ["userId", "displayName", "dailyCalorieGoal", "dailyProteinGoal", "dailyCarbGoal", "dailyFatGoal", "createdAt", "updatedAt"]
+    },
+    "FoodScan": {
+      "title": "FoodScan",
+      "description": "Analyzed and logged meal with comprehensive macro breakdown and detected items",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique scan ID" },
+        "userId": { "type": "string", "description": "Owner user ID" },
+        "title": { "type": "string", "description": "Identified meal title or name" },
+        "imageUrl": { "type": "string", "description": "Local cached path or reference to meal image" },
+        "mealType": { "type": "string", "description": "Meal category (breakfast, lunch, dinner, snack)" },
+        "calories": { "type": "integer", "description": "Total estimated energy in kcal" },
+        "protein": { "type": "number", "description": "Total estimated protein in grams" },
+        "carbs": { "type": "number", "description": "Total estimated carbohydrates in grams" },
+        "fat": { "type": "number", "description": "Total estimated fat in grams" },
+        "fiber": { "type": "number", "description": "Total estimated dietary fiber in grams" },
+        "sugar": { "type": "number", "description": "Total estimated sugar in grams" },
+        "confidence": { "type": "integer", "description": "AI estimation confidence percentage (0-100)" },
+        "detectedItems": {
+          "type": "array",
+          "description": "List of individual detected foods with portions and macros"
+        },
+        "date": { "type": "string", "description": "Date formatted as YYYY-MM-DD" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp via serverTimestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp via serverTimestamp" }
+      },
+      "required": ["id", "userId", "title", "mealType", "calories", "protein", "carbs", "fat", "fiber", "sugar", "confidence", "date", "createdAt", "updatedAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Nutritional AI chat assistant message",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Message ID" },
+        "userId": { "type": "string", "description": "Owner user ID" },
+        "role": { "type": "string", "description": "Role: user or model" },
+        "content": { "type": "string", "description": "Message text content" },
+        "thought": { "type": "string", "description": "Optional AI thinking output from Gemini model" },
+        "modelUsed": { "type": "string", "description": "Model identifier used for generation" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp via serverTimestamp" }
+      },
+      "required": ["id", "userId", "role", "content", "modelUsed", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile with personal nutrition and macro goals"
+    },
+    "/users/{userId}/food_scans/{scanId}": {
+      "schema": "FoodScan",
+      "description": "Scanned and logged meals with estimated nutrition macros"
+    },
+    "/users/{userId}/chat_messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Nutritional AI assistant multi-turn conversation messages"
+    }
+  }
+}

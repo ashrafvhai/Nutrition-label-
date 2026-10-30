@@ -1,0 +1,6 @@
+{
+  "name": "NutriLens",
+  "description": "Premium AI-powered food nutrition scanner and dietary assistant with instant photo analysis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

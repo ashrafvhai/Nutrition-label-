@@ -1,0 +1,133 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.displayName is string && data.displayName.size() <= 100 &&
+             (!('photoUrl' in data) || data.photoUrl == null || (data.photoUrl is string && data.photoUrl.size() <= 1000)) &&
+             data.dailyCalorieGoal is int && data.dailyCalorieGoal >= 500 && data.dailyCalorieGoal <= 10000 &&
+             data.dailyProteinGoal is int && data.dailyProteinGoal >= 10 && data.dailyProteinGoal <= 500 &&
+             data.dailyCarbGoal is int && data.dailyCarbGoal >= 10 && data.dailyCarbGoal <= 1000 &&
+             data.dailyFatGoal is int && data.dailyFatGoal >= 5 && data.dailyFatGoal <= 500 &&
+             (!('dietPreference' in data) || (data.dietPreference is string && data.dietPreference.size() <= 50)) &&
+             (!('units' in data) || (data.units is string && data.units.size() <= 20));
+    }
+
+    function isValidFoodScan(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.title is string && data.title.size() <= 200 &&
+             (!('imageUrl' in data) || data.imageUrl == null || (data.imageUrl is string && data.imageUrl.size() <= 2000)) &&
+             data.mealType is string && data.mealType in ['breakfast', 'lunch', 'dinner', 'snack'] &&
+             data.calories is int && data.calories >= 0 && data.calories <= 20000 &&
+             (data.protein is number || data.protein is int) && data.protein >= 0 && data.protein <= 1000 &&
+             (data.carbs is number || data.carbs is int) && data.carbs >= 0 && data.carbs <= 1000 &&
+             (data.fat is number || data.fat is int) && data.fat >= 0 && data.fat <= 1000 &&
+             (data.fiber is number || data.fiber is int) && data.fiber >= 0 && data.fiber <= 200 &&
+             (data.sugar is number || data.sugar is int) && data.sugar >= 0 && data.sugar <= 500 &&
+             data.confidence is int && data.confidence >= 0 && data.confidence <= 100 &&
+             (!('detectedItems' in data) || (data.detectedItems is list && data.detectedItems.size() <= 50)) &&
+             data.date is string && data.date.size() <= 20;
+    }
+
+    function isValidChatMessage(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.role is string && data.role in ['user', 'model'] &&
+             data.content is string && data.content.size() <= 10000 &&
+             (!('thought' in data) || (data.thought is string && data.thought.size() <= 20000)) &&
+             data.modelUsed is string && data.modelUsed.size() <= 100;
+    }
+
+    // User profile document
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       incoming().userId == userId &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time;
+
+      allow update: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoUrl', 'dailyCalorieGoal', 'dailyProteinGoal', 'dailyCarbGoal', 'dailyFatGoal', 'dietPreference', 'units', 'updatedAt']);
+
+      allow delete: if isSignedIn() && request.auth.uid == userId;
+
+      // Scanned food entries
+      match /food_scans/{scanId} {
+        allow get, list: if isSignedIn() && request.auth.uid == userId;
+
+        allow create: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         incoming().userId == userId &&
+                         incoming().id == scanId &&
+                         isValidId(scanId) &&
+                         isValidFoodScan(incoming()) &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time &&
+                         incoming().updatedAt is timestamp &&
+                         incoming().updatedAt <= request.time;
+
+        allow update: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         incoming().userId == existing().userId &&
+                         incoming().id == existing().id &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidFoodScan(incoming()) &&
+                         incoming().updatedAt is timestamp &&
+                         incoming().updatedAt <= request.time &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'imageUrl', 'mealType', 'calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar', 'confidence', 'detectedItems', 'date', 'updatedAt']);
+
+        allow delete: if isSignedIn() && request.auth.uid == userId;
+      }
+
+      // AI Chat Messages
+      match /chat_messages/{messageId} {
+        allow get, list: if isSignedIn() && request.auth.uid == userId;
+
+        allow create: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         incoming().userId == userId &&
+                         incoming().id == messageId &&
+                         isValidId(messageId) &&
+                         isValidChatMessage(incoming()) &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time;
+
+        allow delete: if isSignedIn() && request.auth.uid == userId;
+      }
+    }
+  }
+}
